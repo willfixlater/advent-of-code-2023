@@ -19,21 +19,22 @@
 
 (def input-path (str (str/replace *ns* #"-" "_") ".txt"))
 
-(defn parse-line [prefix-match]
-  (comp #(map edn/read-string %)
-        #(str/split % #"\s+")
+(defn parse-line [prefix-match one-race?]
+  (comp (if one-race?
+          #(list (edn/read-string (str/replace % #"\s+" "")))
+          #(map edn/read-string (str/split % #"\s+")))
         str/trim
         #(str/replace % prefix-match "")))
 
-(def ->race-times
-  (parse-line #"Time:"))
+(defn ->race-times [one-race?]
+  (parse-line #"Time:" one-race?))
 
-(def ->distance-records
-  (parse-line #"Distance:"))
+(defn ->distance-records [one-race?]
+  (parse-line #"Distance:" one-race?))
 
-(defn parse-sheet [input]
+(defn parse-sheet [input one-race?]
   (let [[race-times distance-records]
-        (map #(%1 %2)
+        (map #((%1 one-race?) %2)
              [->race-times ->distance-records]
              (line-seq input))]
     (map (fn [time record]
@@ -50,11 +51,13 @@
 
 (defn part-one [& _args]
   (let [input (-> input-path io/resource io/reader)
-        sheet (parse-sheet input)]
+        sheet (parse-sheet input false)]
     (apply * (map count-winning-moves sheet))))
 
 (defn part-two [& _args]
-  (let [input (-> input-path io/resource io/reader)]))
+  (let [input (-> input-path io/resource io/reader)
+        sheet (parse-sheet input true)]
+    (count-winning-moves sheet)))
 
 (comment
   (part-one)
